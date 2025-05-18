@@ -1,0 +1,97 @@
+:root {
+  --primary: #ffc107;          /* Bootstrap Warning Sarısı */
+  --secondary: #704214;
+  --background: #FFF8E1;
+  --text: #333333;
+  --darkGreen: #033d1b;
+  --hover-primary: #e6ac00;    /* Biraz daha koyusu */
+}
+
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: var(--background);
+  color: var(--text);
+}
+
+.container {
+  width: 90%;
+  max-width: 1200px;
+  margin: auto;
+  padding: 2rem 0;
+}
+
+/* Flex */
+.flex {
+  display: flex;
+  gap: 1rem;
+}
+.flex-wrap {
+  flex-wrap: wrap;
+}
+.flex-center {
+  justify-content: center;
+  align-items: center;
+}
+
+/* Product Card */
+.product-card {
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  background: #fff;
+  padding: 1rem;
+  width: 250px;
+  transition: transform 0.3s;
+}
+.product-card:hover {
+  transform: scale(1.02);
+}
+
+/* Buttons */
+button,
+.category-button,
+.custom-button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+button:hover,
+.category-button:hover,
+.custom-button:hover {
+  background: var(--hover-primary);
+}
+
+/* Scrollbar Hide */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Dark Green Background */
+.bg-dark-green {
+  background-color: var(--darkGreen);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .container {
+    width: 95%;
+  }
+  .product-card {
+    width: 100%;
+  }
+}
