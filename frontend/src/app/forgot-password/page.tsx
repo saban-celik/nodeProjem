@@ -1,3 +1,4 @@
+//C:\webproje\celikoglu_baklava\frontend\src\app\forgot-password\page.tsx
 "use client";
 import Link from 'next/link';
 import { useState } from 'react';
@@ -7,36 +8,52 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Şifre sıfırlama mantığını burada uygulayın (ör. API çağrısı)
-    console.log('Şifre sıfırlama talebi:', { email });
+    alert("Şifre sıfırlama bağlantısı e-postanıza gönderilecektir.");
+    // 🔐 Şifre sıfırlama API'si buraya entegre edilir
   };
 
   return (
-    <div className="container">
-      <h1 className="mb-4">Şifremi Unuttum</h1>
-      <form onSubmit={handleSubmit} className="w-100" style={{ maxWidth: '400px' }}>
-        <div className="mb-3">
-          <label htmlFor="email" className="form-label">
-            E-posta
-          </label>
-          <input
-            type="email"
-            className="form-control"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <button type="submit" className="custom-button w-100 mb-3">
-          Şifre Sıfırlama Bağlantısı Gönder
-        </button>
-        <div className="text-center">
-          <Link href="/login" className="text-decoration-none">
-            Giriş Yap
-          </Link>
-        </div>
-      </form>
+    <div
+      className="d-flex justify-content-center align-items-center"
+      style={{
+        minHeight: '80vh',
+        backgroundColor: 'var(--background)',
+        padding: '2rem',
+      }}
+    >
+      <div
+        className="bg-white shadow rounded p-4"
+        style={{ maxWidth: '450px', width: '100%', border: '1px solid #eee' }}
+      >
+        <h2 className="text-center mb-4" style={{ color: 'var(--darkGreen)' }}>
+          Şifremi Unuttum
+        </h2>
+
+        <form onSubmit={handleSubmit}>
+          <div className="mb-3">
+            <label htmlFor="email" className="form-label">E-posta</label>
+            <input
+              type="email"
+              className="form-control"
+              id="email"
+              placeholder="Kayıtlı e-posta adresiniz"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
+          <button type="submit" className="custom-button w-100 mb-3">
+            Şifre Sıfırlama Bağlantısı Gönder
+          </button>
+
+          <div className="text-center">
+            <Link href="/login" className="text-decoration-none">
+              Giriş Yap
+            </Link>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
