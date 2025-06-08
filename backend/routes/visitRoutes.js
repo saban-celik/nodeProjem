@@ -5,7 +5,8 @@ const visitController = require('../controllers/visitController');
 const csrf = require('csurf');
 const csrfProtection = csrf({ cookie: true });
 
-router.post('/increment', csrfProtection, visitController.incrementVisit);
-router.get('/stats', visitController.getVisitStats);
+// ❗ Sadece stats için CSRF aktif, POST için kaldırıldı
+router.post('/increment', visitController.incrementVisit);
+router.get('/stats', csrfProtection, visitController.getVisitStats);
 
 module.exports = router;
