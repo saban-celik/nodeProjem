@@ -4,6 +4,8 @@ const router = express.Router();
 const { getAllNews, createNews, updateNews, deleteNews } = require('../controllers/newsController');
 const multer = require('multer');
 const path = require('path');
+const csrf = require('csurf');
+const csrfProtection = csrf({ cookie: true });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'public/uploads/'),
@@ -22,8 +24,8 @@ const upload = multer({
 });
 
 router.get('/', getAllNews);
-router.post('/', upload.single('media'), createNews);
-router.put('/:id', upload.single('media'), updateNews);
-router.delete('/:id', deleteNews);
+router.post('/', csrfProtection, upload.single('media'), createNews);
+router.put('/:id', csrfProtection, upload.single('media'), updateNews);
+router.delete('/:id', csrfProtection, deleteNews);
 
 module.exports = router;

@@ -3,6 +3,8 @@ const express = require('express');
 const router  = express.Router();
 const multer  = require('multer');
 const path    = require('path');
+const csrf = require('csurf');
+const csrfProtection = csrf({ cookie: true });
 const {
   getAllVideos,
   createVideo,
@@ -22,9 +24,9 @@ const upload = multer({
   },
 });
 
-router.get('/',            getAllVideos);
-router.post('/',   upload.single('media'), createVideo);
-router.put('/:id', upload.single('media'), updateVideo);
-router.delete('/:id',       deleteVideo);
+router.get('/', getAllVideos);
+router.post('/', csrfProtection, upload.single('media'), createVideo);
+router.put('/:id', csrfProtection, upload.single('media'), updateVideo);
+router.delete('/:id', csrfProtection, deleteVideo);
 
 module.exports = router;

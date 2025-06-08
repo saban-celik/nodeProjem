@@ -2,11 +2,11 @@
 const Product = require('../models/productModel');
 const fs = require('fs');
 const path = require('path');
+const slugify = require('slugify');
 
 exports.getBaklavaProducts = (req, res) => {
   Product.getAllBaklavaProducts((err, results) => {
-    if (err) {
-      console.error("\u274c getBaklavaProducts hatas\u0131:", err);
+    if (err) {;
       return res.status(200).json([]);
     }
     const products = groupProducts(results);
@@ -14,34 +14,64 @@ exports.getBaklavaProducts = (req, res) => {
   });
 };
 
-exports.getRegionalProducts = (req, res) => {
-  Product.getAllRegionalProducts((err, results) => {
-    if (err) {
-      console.error("\u274c getRegionalProducts hatas\u0131:", err);
-      return res.status(200).json([]);
+exports.getBaklavaProductBySlug = (req, res) => {
+  const slug = req.params.slug;
+  Product.getBaklavaProductBySlug(slug, (err, product) => {
+    if (err || !product) {
+      return res.status(404).json({ error: 'Ürün bulunamadı' });
     }
-    const products = groupProducts(results);
-    res.status(200).json(products || []);
+    res.status(200).json(product);
   });
 };
 
 exports.createBaklavaProduct = (req, res) => {
   const { name, weight, price } = req.body;
   const image = req.file ? `/uploads/${req.file.filename}` : '';
+  console.log(`📥 createBaklavaProduct çağrıldı, veri: ${JSON.stringify({ name, weight, price, image })}`);
 
-  if (!name) return res.status(400).json({ error: 'Ürün ad\u0131 zorunlu' });
-  if (!weight) return res.status(400).json({ error: 'A\u011f\u0131rl\u0131k zorunlu' });
-  if (!price || isNaN(parseFloat(price))) return res.status(400).json({ error: 'Ge\u00e7erli bir fiyat girin' });
+  // Input validation
+  if (!name) return res.status(400).json({ error: 'Ürün adı zorunlu' });
+  if (!weight) return res.status(400).json({ error: 'Ağırlık zorunlu' });
+  if (!price || isNaN(parseFloat(price))) return res.status(400).json({ error: 'Geçerli bir fiyat girin' });
   if (!image) return res.status(400).json({ error: 'Ürün resmi zorunlu' });
 
-  const product = { name, weight, price: parseFloat(price), image };
+  // Generate slug
+  const slug = slugify(name, { lower: true, locale: 'tr' });
+  const product = { name, weight, price: parseFloat(price), image, slug };
+  console.log(`✅ Ürün oluşturuluyor, slug: ${slug}`);
 
-  Product.createBaklavaProduct(product, (err, result) => {
+  // Check for duplicate slug
+  Product.getBaklavaProductBySlug(slug, (err, existingProduct) => {
     if (err) {
-      console.error("Hata detaylar\u0131:", err.message);
-      return res.status(500).json({ error: 'Ürün eklenemedi: ' + err.message });
+      console.log(`❌ Slug kontrol hatası: ${err.message}`);
+      return res.status(500).json({ error: 'Slug kontrolü başarısız: ' + err.message });
     }
-    res.status(201).json({ id: result.insertId, ...product });
+    if (existingProduct) {
+      console.log(`❌ Slug zaten kullanımda: ${slug}`);
+      return res.status(400).json({ error: 'Bu ürün adına sahip bir ürün zaten var' });
+    }
+
+    // Create product
+    Product.createBaklavaProduct(product, (err, result) => {
+      if (err) {
+        console.log(`❌ createBaklavaProduct hatası: ${err.message}`);
+        console.log(`📤 Yanıt: 500, Ürün eklenemedi`);
+        return res.status(500).json({ error: 'Ürün eklenemedi: ' + err.message });
+      }
+      console.log(`✅ createBaklavaProduct başarılı, yeni ürün ID: ${result.insertId}`);
+      res.status(201).json({ id: result.insertId, ...product });
+    });
+  });
+};
+
+exports.getRegionalProducts = (req, res) => {
+  Product.getAllRegionalProducts((err, results) => {
+    if (err) {
+      console.error("❌ getRegionalProducts hatası:", err);
+      return res.status(200).json([]);
+    }
+    const products = groupProducts(results);
+    res.status(200).json(products || []);
   });
 };
 
@@ -50,29 +80,43 @@ exports.updateBaklavaProduct = (req, res) => {
   const { name, weight, price } = req.body;
   const image = req.file ? `/uploads/${req.file.filename}` : req.body.image;
 
-  if (!name) return res.status(400).json({ error: 'Ürün ad\u0131 zorunlu' });
-  if (!weight) return res.status(400).json({ error: 'A\u011f\u0131rl\u0131k zorunlu' });
-  if (!price || isNaN(parseFloat(price))) return res.status(400).json({ error: 'Ge\u00e7erli bir fiyat girin' });
+  if (!name) return res.status(400).json({ error: 'Ürün adı zorunlu' });
+  if (!weight) return res.status(400).json({ error: 'Ağırlık zorunlu' });
+  if (!price || isNaN(parseFloat(price))) return res.status(400).json({ error: 'Geçerli bir fiyat girin' });
   if (!image) return res.status(400).json({ error: 'Ürün resmi zorunlu' });
 
-  const product = { name, weight, price: parseFloat(price), image };
-  Product.updateBaklavaProduct(id, product, (err) => {
-    if (err) return res.status(500).json({ error: 'Ürün g\u00fcncellenemedi: ' + err.message });
-    res.json({ id, ...product });
+  const slug = slugify(name, { lower: true, locale: 'tr' });
+  const product = { name, weight, price: parseFloat(price), image, slug };
+
+  // Check for duplicate slug (excluding current product)
+  Product.getBaklavaProductBySlug(slug, (err, existingProduct) => {
+    if (err) {
+      console.log(`❌ Slug kontrol hatası: ${err.message}`);
+      return res.status(500).json({ error: 'Slug kontrolü başarısız: ' + err.message });
+    }
+    if (existingProduct && existingProduct.id !== parseInt(id)) {
+      console.log(`❌ Slug zaten kullanımda: ${slug}`);
+      return res.status(400).json({ error: 'Bu ürün adına sahip bir ürün zaten var' });
+    }
+
+    Product.updateBaklavaProduct(id, product, (err) => {
+      if (err) return res.status(500).json({ error: 'Ürün güncellenemedi: ' + err.message });
+      res.json({ id, ...product });
+    });
   });
 };
 
 exports.deleteBaklavaProduct = (req, res) => {
   const id = req.params.id;
   Product.getAllBaklavaProducts((err, products) => {
-    if (err) return res.status(500).json({ error: 'Veritaban\u0131 hatas\u0131: ' + err.message });
+    if (err) return res.status(500).json({ error: 'Veritabanı hatası: ' + err.message });
     const product = products.find((p) => p.product_id == id);
-    if (!product) return res.status(404).json({ error: 'Ürün bulunamad\u0131' });
+    if (!product) return res.status(404).json({ error: 'Ürün bulunamadı' });
 
     if (product.image) {
       const filePath = path.join(__dirname, '../public', product.image);
       fs.unlink(filePath, (err) => {
-        if (err) console.error('Dosya silme hatas\u0131:', err);
+        if (err) console.error('Dosya silme hatası:', err);
       });
     }
 
@@ -87,12 +131,13 @@ exports.createRegionalProduct = (req, res) => {
   const { name, weight, price } = req.body;
   const image = req.file ? `/uploads/${req.file.filename}` : '';
 
-  if (!name) return res.status(400).json({ error: 'Ürün ad\u0131 zorunlu' });
-  if (!weight) return res.status(400).json({ error: 'A\u011f\u0131rl\u0131k zorunlu' });
-  if (!price || isNaN(parseFloat(price))) return res.status(400).json({ error: 'Ge\u00e7erli bir fiyat girin' });
+  if (!name) return res.status(400).json({ error: 'Ürün adı zorunlu' });
+  if (!weight) return res.status(400).json({ error: 'Ağırlık zorunlu' });
+  if (!price || isNaN(parseFloat(price))) return res.status(400).json({ error: 'Geçerli bir fiyat girin' });
   if (!image) return res.status(400).json({ error: 'Ürün resmi zorunlu' });
 
-  const product = { name, weight, price: parseFloat(price), image };
+  const slug = slugify(name, { lower: true, locale: 'tr' });
+  const product = { name, weight, price: parseFloat(price), image, slug };
   Product.createRegionalProduct(product, (err, result) => {
     if (err) return res.status(500).json({ error: 'Ürün eklenemedi: ' + err.message });
     res.status(201).json({ id: result.insertId, ...product });
@@ -104,14 +149,15 @@ exports.updateRegionalProduct = (req, res) => {
   const { name, weight, price } = req.body;
   const image = req.file ? `/uploads/${req.file.filename}` : req.body.image;
 
-  if (!name) return res.status(400).json({ error: 'Ürün ad\u0131 zorunlu' });
-  if (!weight) return res.status(400).json({ error: 'A\u011f\u0131rl\u0131k zorunlu' });
-  if (!price || isNaN(parseFloat(price))) return res.status(400).json({ error: 'Ge\u00e7erli bir fiyat girin' });
+  if (!name) return res.status(400).json({ error: 'Ürün adı zorunlu' });
+  if (!weight) return res.status(400).json({ error: 'Ağırlık zorunlu' });
+  if (!price || isNaN(parseFloat(price))) return res.status(400).json({ error: 'Geçerli bir fiyat girin' });
   if (!image) return res.status(400).json({ error: 'Ürün resmi zorunlu' });
 
-  const product = { name, weight, price: parseFloat(price), image };
+  const slug = slugify(name, { lower: true, locale: 'tr' });
+  const product = { name, weight, price: parseFloat(price), image, slug };
   Product.updateRegionalProduct(id, product, (err) => {
-    if (err) return res.status(500).json({ error: 'Ürün g\u00fcncellenemedi: ' + err.message });
+    if (err) return res.status(500).json({ error: 'Ürün güncellenemedi: ' + err.message });
     res.json({ id, ...product });
   });
 };
@@ -119,14 +165,14 @@ exports.updateRegionalProduct = (req, res) => {
 exports.deleteRegionalProduct = (req, res) => {
   const id = req.params.id;
   Product.getAllRegionalProducts((err, products) => {
-    if (err) return res.status(500).json({ error: 'Veritaban\u0131 hatas\u0131: ' + err.message });
+    if (err) return res.status(500).json({ error: 'Veritabanı hatası: ' + err.message });
     const product = products.find((p) => p.product_id == id);
-    if (!product) return res.status(404).json({ error: 'Ürün bulunamad\u0131' });
+    if (!product) return res.status(404).json({ error: 'Ürün bulunamadı' });
 
     if (product.image) {
       const filePath = path.join(__dirname, '../public', product.image);
       fs.unlink(filePath, (err) => {
-        if (err) console.error('Dosya silme hatas\u0131:', err);
+        if (err) console.error('Dosya silme hatası:', err);
       });
     }
 
@@ -140,11 +186,12 @@ exports.deleteRegionalProduct = (req, res) => {
 function groupProducts(results) {
   if (!results || results.length === 0) return [];
   const grouped = results.reduce((acc, row) => {
-    const { product_id, product_name, image, weight, price, variant_id, variant_name, material, variant_price } = row;
+    const { product_id, product_name, slug, image, weight, price, variant_id, variant_name, material, variant_price } = row;
     if (!acc[product_id]) {
       acc[product_id] = {
         id: product_id,
         name: product_name,
+        slug: slug || slugify(product_name, { lower: true, locale: 'tr' }), // 🔥 slug yoksa oluştur
         image,
         weight,
         price,
@@ -158,11 +205,10 @@ function groupProducts(results) {
   }, {});
   return Object.values(grouped);
 }
-
 exports.getSimpleBaklavaProducts = (req, res) => {
   Product.getSimpleBaklavaProducts((err, results) => {
     if (err) {
-      console.error("\u274c getSimpleBaklavaProducts hatas\u0131:", err);
+      console.error("❌ getSimpleBaklavaProducts hatası:", err);
       return res.status(200).json([]);
     }
     res.status(200).json(results || []);

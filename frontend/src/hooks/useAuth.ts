@@ -1,5 +1,5 @@
 // src/hooks/useAuth.ts
-import { fetchUserById } from '@/utils/api';
+import { fetchCsrfToken, fetchUserById } from '@/utils/api';
 import { useEffect, useState } from 'react';
 
 interface User {
@@ -17,9 +17,13 @@ export const useAuth = () => {
   useEffect(() => {
     globalSetUser = setUser;
 
+    // 🔐 CSRF token'ı sunucudan al
+    fetchCsrfToken().catch(err => {
+      console.error("❌ CSRF token alınamadı:", err);
+    });
+
     const stored = localStorage.getItem("user");
 
-    // ❗"undefined", null, boş string gibi geçersiz değerleri ele
     if (stored && stored !== "undefined") {
       try {
         const parsed = JSON.parse(stored);

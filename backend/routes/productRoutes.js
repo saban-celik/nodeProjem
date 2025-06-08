@@ -5,8 +5,9 @@ const router = express.Router();
 const controller = require('../controllers/productController');
 const multer = require('multer');
 const path = require('path');
+const csrf = require('csurf');
+const csrfProtection = csrf({ cookie: true });
 
-// 🔸 Yükleme yapılandırması
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, '../public/uploads')),
   filename: (req, file, cb) => {
@@ -17,18 +18,16 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ✅ Baklava ürünleri
-router.get('/baklava-products', controller.getBaklavaProducts);
+router.post('/baklava-products', csrfProtection, upload.single('image'), controller.createBaklavaProduct);
+router.get('/baklava-products', controller.getBaklavaProducts); // 🔥 Yeni eklenen rota
+router.get('/baklava-products/slug/:slug', controller.getBaklavaProductBySlug);
 router.get('/simple-baklava-products', controller.getSimpleBaklavaProducts);
-router.post('/baklava-products', upload.single('image'), controller.createBaklavaProduct);
-router.put('/baklava-products/:id', upload.single('image'), controller.updateBaklavaProduct);
-router.delete('/baklava-products/:id', controller.deleteBaklavaProduct);
+router.put('/baklava-products/:id', csrfProtection, upload.single('image'), controller.updateBaklavaProduct);
+router.delete('/baklava-products/:id', csrfProtection, controller.deleteBaklavaProduct);
 
-// ✅ Yöresel ürünler
 router.get('/regional-products', controller.getRegionalProducts);
-router.post('/regional-products', upload.single('image'), controller.createRegionalProduct);
-router.put('/regional-products/:id', upload.single('image'), controller.updateRegionalProduct);
-router.delete('/regional-products/:id', controller.deleteRegionalProduct);
+router.post('/regional-products', csrfProtection, upload.single('image'), controller.createRegionalProduct);
+router.put('/regional-products/:id', csrfProtection, upload.single('image'), controller.updateRegionalProduct);
+router.delete('/regional-products/:id', csrfProtection, controller.deleteRegionalProduct);
 
-// 🔚 Export router
 module.exports = router;

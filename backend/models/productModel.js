@@ -1,12 +1,12 @@
 // C:\webproje\celikoglu_baklava\backend\models\productModel.js
 const db = require('../config/db');
 
-// ✅ Tüm baklava ürünleri (varyantlarla birlikte)
 exports.getAllBaklavaProducts = (callback) => {
   const query = `
     SELECT 
       p.id AS product_id,
       p.name AS product_name,
+      p.slug,
       p.image,
       p.weight,
       p.price,
@@ -19,10 +19,28 @@ exports.getAllBaklavaProducts = (callback) => {
   `;
   db.query(query, (err, results) => {
     if (err) {
-      console.error("❌ SQL HATASI (getAllBaklavaProducts):", err);
-      return callback(null, []);
+      return callback(err, []);
     }
     callback(null, results || []);
+  });
+};
+
+exports.getBaklavaProductBySlug = (slug, callback) => {
+  const query = `
+    SELECT id, name, weight, price, image, slug
+    FROM baklava_products
+    WHERE slug = ?
+    LIMIT 1
+  `;
+  db.query(query, [slug], (err, results) => {
+    if (err) {
+     
+      return callback(err);
+    }
+    if (results.length === 0) {
+      return callback(null, null);
+    }
+    callback(null, results[0]);
   });
 };
 
@@ -53,12 +71,14 @@ exports.getAllRegionalProducts = (callback) => {
 
 // ✅ Yeni baklava ürünü ekle
 exports.createBaklavaProduct = (product, callback) => {
-  const { name, weight, price, image } = product;
+  const { name, weight, price, image, slug } = product; // 🔥 slug burada
+
   const query = `
-    INSERT INTO baklava_products (name, weight, price, image)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO baklava_products (name, weight, price, image, slug)
+    VALUES (?, ?, ?, ?, ?)
   `;
-  db.query(query, [name, weight, parseFloat(price), image], (err, result) => {
+
+  db.query(query, [name, weight, parseFloat(price), image, slug], (err, result) => {
     if (err) {
       console.error("SQL Hatası:", err.message);
       return callback(new Error(`Veritabanına eklenemedi: ${err.message}`));
@@ -67,15 +87,18 @@ exports.createBaklavaProduct = (product, callback) => {
   });
 };
 
+
 // ✅ Baklava ürünü güncelle
 exports.updateBaklavaProduct = (id, product, callback) => {
-  const { name, weight, price, image } = product;
+  const { name, weight, price, image, slug } = product; // 🔥 slug burada
+
   const query = `
     UPDATE baklava_products
-    SET name = ?, weight = ?, price = ?, image = ?
+    SET name = ?, weight = ?, price = ?, image = ?, slug = ?
     WHERE id = ?
   `;
-  db.query(query, [name, weight, parseFloat(price), image, id], (err) => {
+
+  db.query(query, [name, weight, parseFloat(price), image, slug, id], (err) => {
     if (err) return callback(new Error(`Güncelleme başarısız: ${err.message}`));
     callback(null);
   });

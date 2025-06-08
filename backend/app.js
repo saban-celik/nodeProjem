@@ -1,48 +1,62 @@
-// C:\webproje\celikoglu_baklava\backend\app.js
+// 📄 C:\webproje\celikoglu_baklava\backend\app.js
 
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const csrf = require('csurf');
+const cookieParser = require('cookie-parser');
 
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const videoRoutes = require('./routes/videoRoutes');
 const newsRoutes = require('./routes/newsRoutes');
 const announcementsRoutes = require('./routes/announcementsRoutes');
+const visitRoutes = require('./routes/visitRoutes');
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// 🔐 Middleware
+app.use(cookieParser());
+
+app.use(cors({
+  origin: 'http://localhost:3000', // 🔧 FRONTEND URL'ni açık belirt
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Statik dosya yolu
+// 📁 Statik dosyalar
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
-// API Route'ları
-if (authRoutes && typeof authRoutes === 'function') {
-  app.use('/api/auth', authRoutes);
-}
-if (productRoutes && typeof productRoutes === 'function') {
-  app.use('/api/products', productRoutes);
-}
-if (videoRoutes && typeof videoRoutes === 'function') {
-  app.use('/api/videos', videoRoutes);
-}
-if (newsRoutes && typeof newsRoutes === 'function') {
-  app.use('/api/news', newsRoutes);
-}
-if (announcementsRoutes && typeof announcementsRoutes === 'function') {
-  app.use('/api/announcements', announcementsRoutes);
-}
+// 🔒 CSRF koruması
+const csrfProtection = csrf({ cookie: true });
 
-// Basit test endpoint'i
-app.get("/api/test", (req, res) => {
-  res.json({ message: "API çalışıyor!" });
+// 🔌 CSRF token almak için özel endpoint
+app.get('/api/csrf-token', csrfProtection, (req, res) => {
+  res
+    .cookie('XSRF-TOKEN', req.csrfToken(), {
+      httpOnly: false,
+      secure: false,
+      sameSite: 'lax'
+    })
+    .json({ csrfToken: req.csrfToken() });
 });
 
-// Sunucuyu başlat
+// 📦 API route'ları
+app.use('/api/auth', authRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/videos', videoRoutes);
+app.use('/api/news', newsRoutes);
+app.use('/api/announcements', announcementsRoutes);
+app.use('/api/visits', visitRoutes);
+
+// 🧪 Test endpoint
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'API çalışıyor!' });
+});
+
+// 🚀 Sunucu başlat
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Sunucu ${PORT} portunda çalışıyor`);

@@ -33,7 +33,7 @@ export default function AdminPage() {
             Hoş geldiniz, <strong>{user.name}</strong> 👋
           </p>
           <p>
-            Bu panelden ürün ekleyebilir, yorumları yönetebilir, haberleri düzenleyebilir ve daha
+            Bu panelden ürün ekleyebilir yönetebilir, haberleri düzenleyebilir ve daha
             fazlasını yapabilirsiniz. Sol menüden gezinmeye başlayın.
           </p>
           <div className="mt-4">
